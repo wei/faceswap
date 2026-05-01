@@ -431,7 +431,7 @@ install_git() {
     info "Installing Git..."
     # TODO On linux version 2.45.2 makes the font fixed TK pull in Python from
     # graalpy, which breaks pretty much everything
-    yellow ; conda install "git<2.45" -q -y
+    yellow ; conda install -c conda-forge "git<2.45" -q -y
 }
 
 delete_faceswap() {

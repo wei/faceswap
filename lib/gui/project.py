@@ -1027,7 +1027,7 @@ class LastSession(_GuiSession):
         self._options = options
         self._set_options()
 
-    def to_dict(self) -> dict[str, str | dict[str, bool | int | float | str]] | None:
+    def to_dict(self) -> dict[str, str | dict[str, bool | int | float | str] | None] | None:
         """Collect the current GUI options and place them in a dict for retrieval or storage.
 
         This function is required for reloading the GUI state when the GUI has been force
@@ -1037,7 +1037,7 @@ class LastSession(_GuiSession):
         -------
         The current cli options ready for saving or retrieval by :func:`from_dict`
         """
-        opts = T.cast(dict[str, str | dict[str, bool | int | float | str]],
+        opts = T.cast(dict[str, str | dict[str, bool | int | float | str] | None],
                       self._current_gui_state())
         logger.debug("Collected opts: %s", opts)
         if not opts or opts == self._default_options:
@@ -1045,7 +1045,6 @@ class LastSession(_GuiSession):
             return None
         opts["tab_name"] = self._active_tab
         fname = self._config.project.filename
-        assert fname is not None
         opts["project"] = fname
         logger.debug("Added project items: %s", {k: v for k, v in opts.items()
                                                  if k in ("tab_name", "project")})
