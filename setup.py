@@ -12,7 +12,7 @@ import typing as T
 from importlib import import_module
 from shutil import which
 from string import printable
-from subprocess import PIPE, Popen
+from subprocess import PIPE, Popen, check_call
 
 from lib.logger import log_setup
 from lib.system import Cuda, Packages, ROCm, System
@@ -177,11 +177,17 @@ class Environment():
 
     def _check_pip(self) -> None:
         """ Check installed pip version """
-        try:
-            _pip = T.cast("pip", import_module("pip"))  # type:ignore[valid-type]
-        except ModuleNotFoundError:
-            logger.error("Import pip failed. Please Install python3-pip and try again")
-            sys.exit(1)
+        for i in range(2):
+            try:
+                _pip = T.cast("pip", import_module("pip"))  # type:ignore[valid-type]
+                break
+            except ModuleNotFoundError:
+                if i == 0:
+                    logger.info("Installing pip...")
+                    check_call([sys.executable, "-m", "ensurepip", "--default-pip"])
+                    continue
+                logger.error("Import pip failed. Please Install python3-pip and try again")
+                sys.exit(1)
         logger.info("Pip version: %s", _pip.__version__)  # type:ignore[attr-defined]
 
     def _configure_keras(self) -> None:
@@ -211,8 +217,8 @@ class Environment():
     def set_config(self) -> None:
         """ Set the backend in the faceswap config file """
         config = {"backend": self.backend}
-        pypath = os.path.dirname(os.path.realpath(__file__))
-        config_file = os.path.join(pypath, "config", ".faceswap")
+        py_path = os.path.dirname(os.path.realpath(__file__))
+        config_file = os.path.join(py_path, "config", ".faceswap")
         with open(config_file, "w", encoding="utf8") as cnf:
             json.dump(config, cnf)
         logger.info("Faceswap config written to: %s", config_file)
@@ -347,7 +353,7 @@ class RequiredPackages():
                 # Ref: https://github.com/ContinuumIO/anaconda-issues/issues/6833
                 # This versioning will fail in parse_requirements, so we need to do it here
                 package["package"] = f"{req.name}=*=xft_*"  # Swap out for explicit XFT version
-                if exists is not None and not exists[1].startswith("xft"):  # Replace noxft version
+                if exists is not None and not exists[1].startswith("xft"):  # Replace no-xft vers
                     exists = None
             if not exists:
                 logger.debug("Adding new Conda package '%s'", package["package"])
@@ -856,16 +862,16 @@ class Install():  # pylint:disable=too-few-public-methods
         extra_args : list[str] | None, optional
             Any extra arguments to provide to pip. Default: ``None`` (no extra arguments)
         """
-        pipexe = [sys.executable,
-                  "-u", "-m", "pip", "install", "--no-cache-dir", "--progress-bar=raw"]
+        pip_exe = [sys.executable,
+                   "-u", "-m", "pip", "install", "--no-cache-dir", "--progress-bar=raw"]
 
         if not self._env.system.is_admin and not self._env.system.is_virtual_env:
-            pipexe.append("--user")  # install as user to solve perm restriction
+            pip_exe.append("--user")  # install as user to solve perm restriction
         if extra_args is not None:
-            pipexe.extend(extra_args)
-        pipexe.extend([p["package"] for p in packages])
+            pip_exe.extend(extra_args)
+        pip_exe.extend([p["package"] for p in packages])
         names = [p["name"] for p in packages]
-        installer = Installer(self._env, names, pipexe, False, self._is_gui)
+        installer = Installer(self._env, names, pip_exe, False, self._is_gui)
         if installer() != 0:
             msg = f"Unable to install Python packages: {', '.join(names)}"
             logger.warning("%s. Please install these packages manually", msg)
@@ -888,16 +894,16 @@ class Install():  # pylint:disable=too-few-public-methods
         Returns
         -------
         bool
-            ``True`` if the package was succesfully installed otherwise ``False``
+            ``True`` if the package was successfully installed otherwise ``False``
         """
         conda = which("conda")
         assert conda is not None
-        condaexe = [conda, "install", "-y", "-c", channel,
-                    "--override-channels", "--strict-channel-priority"]
-        condaexe += [p["package"] for p in packages]
+        conda_exe = [conda, "install", "-y", "-c", channel,
+                     "--override-channels", "--strict-channel-priority"]
+        conda_exe += [p["package"] for p in packages]
         names = [p["name"] for p in packages]
-        retcode = Installer(self._env, names, condaexe, True, self._is_gui)()
-        if retcode != 0:
+        ret_code = Installer(self._env, names, conda_exe, True, self._is_gui)()
+        if ret_code != 0:
             logger.warning("Unable to install Conda packages: %s. "
                            "Please install these packages manually", ', '.join(names))
             _InstallState.failed = True
