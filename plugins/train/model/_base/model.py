@@ -285,8 +285,8 @@ class ModelBase():  # pylint:disable=too-many-instance-attributes
             if idx == 0:
                 parent = model
                 continue
-            model.summary(print_fn=print_fn)
-        parent.summary(print_fn=print_fn)
+            model.summary(print_fn=print_fn, line_length=120)
+        parent.summary(print_fn=print_fn, line_length=120)
 
     def _compile_model(self) -> None:
         """Legacy from Keras code. Now just load and freeze weights"""

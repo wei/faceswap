@@ -8,7 +8,7 @@ import operator
 import sys
 import typing as T
 
-from keras import InputSpec, Layer, ops, saving
+from keras import dtype_policies, InputSpec, Layer, ops, saving
 
 from lib.logger import parse_class_init
 from lib.utils import get_module_objects
@@ -742,6 +742,29 @@ class ScalarOp(Layer):  # pylint:disable=too-many-ancestors,abstract-method
         config["operation"] = self._operation
         config["value"] = self._value
         return config
+
+    @classmethod
+    def from_config(cls, config: dict[str, T.Any]):
+        """ Default Keras does not like our use of 'operation' as a keyword argument, so override
+        and intercept """
+        if "dtype" in config and isinstance(config["dtype"], dict):
+            config = config.copy()
+            policy = dtype_policies.deserialize(config["dtype"])
+            if (not isinstance(policy, dtype_policies.DTypePolicyMap)
+                    and policy.quantization_mode is None):
+                policy = policy.name
+            config["dtype"] = policy
+
+        if not isinstance(config["operation"], str):
+            config["operation"] = config["operation"].__name__
+
+        try:
+            return cls(**config)
+        except Exception as e:
+            raise TypeError(  # pylint:disable=raise-missing-from
+                f"Error when deserializing class '{cls.__name__}' using "
+                f"config={config}.\n\nException encountered: {e}"
+            )
 
 
 # Update layers into Keras custom objects
