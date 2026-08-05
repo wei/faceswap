@@ -699,9 +699,12 @@ class Encoder():
                               "depth_multiplier": cfg.mobilenet_depth(),
                               "dropout": cfg.mobilenet_dropout()},
                 "mobilenet_v2": {"alpha": cfg.mobilenet_width()},
-                "mobilenet_v3": {"alpha": cfg.mobilenet_width(),
-                                 "minimalist": cfg.mobilenet_minimalistic(),
-                                 "include_preprocessing": False}}
+                "mobilenet_v3_small": {"alpha": cfg.mobilenet_width(),
+                                       "minimalistic": cfg.mobilenet_minimalistic(),
+                                       "include_preprocessing": False},
+                "mobilenet_v3_large": {"alpha": cfg.mobilenet_width(),
+                                       "minimalistic": cfg.mobilenet_minimalistic(),
+                                       "include_preprocessing": False}}
 
     @property
     def _selected_model(self) -> tuple[_EncoderInfo, dict]:
